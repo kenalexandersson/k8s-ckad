@@ -1,0 +1,167 @@
+= Notes beginners course
+:toc: left
+:imagesdir: ../documentation/images/
+
+http://kubernetes.io/docs
+
+https://computingforgeeks.com/how-to-install-virtualbox-on-fedora-linux/
+Starta i wayland: QT_QPA_PLATFORM=xcb /usr/bin/virtualbox && virtualbox
+
+.definition file base attributes (common for all)
+[source,yaml]
+----
+apiVersion:
+kind:
+metadata:
+spec:
+----
+
+== Minukube
+
+minikube -> startar single node Kubernetes cluster med master/node in one
+
+kubectl -> command line tool för att kommunicera med master
+
+== Commands
+
+----
+minikube start --vm-driver=kvm2
+
+minikube status
+
+minikube stop
+----
+
+=== Pods
+----
+kubectl get pods
+
+kubectl get nodes -o wide
+
+# Also shows system pods
+kubectl get pods --all-namespaces
+
+kubectl run hello-minikube --image=k8s.gcr.io/echoserver:1.4 --port=8080
+
+kubectl describe pods
+
+kubectl expose pod hello-minikube --type=NodePort
+
+minikube service hello-minikube --url
+
+kubectl delete pod hello-minikube
+
+kubectl create -f mydef-file.yml
+
+#edit file for already created pod, then update with
+kubectl apply -f mydef-file.yml
+----
+
+== Replicasets
+----
+# replicaset/replicacontroller
+kubectl get replicationcontroller
+kubectl get replicaset
+
+# for replicaset, having apiVersion: apps/v1
+kubectl create -f my-replicaset-def.yml
+
+kubectl edit replicaset new-replica-set
+
+kubectl replace -f my-replicaset-def.yml
+
+# scale already running
+kubectl scale --replicas=6 -f my-replicaset-def.yml
+
+# scale already running, using type and name instead of file
+kubectl scale --replicas=6 replicaset my-replicaset
+----
+
+== Deployments
+
+----
+kubectl create -f deployment-definition.yml
+or
+kubectl create -f . (will run all def ymls in dir)
+
+kubectl get deployments
+
+kubectl describe deployment myapp-deployment
+
+kubectl get all
+
+kubectl apply -f deployment-definition.yml
+
+kubectl set image deployment/myapp-deployment apa=apa:1.9.1
+
+kubectl rollout status deployment/myapp-deployment
+
+kubectl rollout history deployment/myapp-deployment
+
+kubectl rollout undo deployment/myapp-deployment
+
+kubectl delete deployment myapp-deployment
+----
+
+== Services
+
+----
+kubectl create -f service-definition.yml
+
+kunectl get services
+
+----
+
+[NOTE]
+Replication Controller is the deprecated way, Replica Set is the new way.
+
+The replicaset is a process to monitor pods.
+
+== Deployments
+
+Deployment strategies:
+
+	* rolling update (default)
+	* recreate -> takes down all instances and brings upp new ones, resulting in application downtime
+
+Command `kubectl run apa --image=apa` actually creates a deployment with a pod in it, without a yaml definition file. This is not recommended since there is no file to check in to version control
+
+"Services enables connectivity between pods, enables loose coupling of microservices"
+
+Service types:
+
+- Node port (for defining outside access to pods in node)
+
+[ditaa]
+----
+  +---0---+
+  |       |
+  |       |
+  +-------+
+----
+
+
+ - Cluster Ip -default in spec, (for defining interface for pods communicating with other pods, like frontend pods -> service -> backend pods)
+
+[ditaa]
+----
+  +-------+
+  |       |
+  |   o   |
+  +-------+
+----
+
+- Load balancer
+
+[ditaa]
+----
+      o
+      |
+    +-+-+
+    | | |
+  +-o-o-o-+
+  |       |
+  |       |
+  +-------+
+
+----
