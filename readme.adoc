@@ -1,5 +1,5 @@
 = K8s
 
-<<documentation/notes-beginners.adoc,Notes from beginners course>>
+<<documentation/notes-beginners.adoc#,Notes from beginners course>>
 
-<<documentation/notes-ckad.adoc,Notes from certificate course>>
+<<documentation/notes-ckad.adoc#,Notes from certificate course>>
