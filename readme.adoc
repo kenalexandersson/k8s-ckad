@@ -1,0 +1,292 @@
+= Notes certifikation course
+:toc: left
+
+----
+# Get complete cluster info
+kubectl cluster-info
+----
+
+.base attribute for k8s yaml files
+[source,yaml]
+----
+apiVersion:
+kind:
+metadata:
+spec:
+----
+
+.apiVersion values
+|===
+|Kind |Version
+
+|Pod
+|v1
+
+|Service
+|v1
+
+|ReplicaSet
+|apps/v1
+
+|Deployment
+|apps/v1
+
+|===
+
+== Pods
+
+.typical definition base for pod
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+----
+
+.Extract a definition into a yaml file
+----
+kubectl get pod <pod-name> -o yaml > pod-definition.yaml
+----
+
+.An alternative is to edit directly
+----
+kubectl edit pod <pod-name>
+----
+
+== ReplicaSet
+
+.typical definition for replicaset
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: myapp-replicaset
+  labels:
+    app: myapp
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: aName
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+  selector:
+    matchLabels:
+      app: myapp
+----
+
+.example of how labels are used in replicaset (to monitor already created pods)
+image::documentation/images/labels.png[]
+
+.Updating the replica set (is this the same as apply?)
+----
+kubectl replace -f <filename>.yml
+
+# or
+
+# Note that this does not update the acutal file, it will keep it's value of 1 in replicas attribute
+kubectl scale --replicas=4 -f <filename>.yml
+# or using type and label
+kubectl scale --replicas=3 deployment -l app=webapp
+----
+
+== Deployments
+
+image::documentation/images/deployment.png[]
+
+.typical definition for deployment
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-deployment
+  labels:
+    app: myapp
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: aName
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+  selector:
+    matchLabels:
+      app: myapp
+----
+
+== Imperative commands
+
+Generate POD Manifest YAML file (-o yaml). Don't create it(--dry-run=client)::
++
+----
+#deprecated with generator
+kubectl run --generator=run-pod/v1 redis --image=redis:alpine --dry-run=client -o yaml
+
+kubectl run redis --image=redis:alpine --dry-run=client -o yaml
+----
+
+Generate Deployment YAML file (-o yaml). Don't create it(--dry-run=client)::
++
+----
+kubectl create deployment --image=nginx nginx --dry-run=client -o yaml
+----
+
+[IMPORTANT]
+kubectl create deployment does not have a --replicas option. You could first create it and then scale it using the kubectl scale command
+
+Save it to a file - (If you need to modify or add some other details)::
++
+----
+kubectl create deployment --image=nginx nginx --dry-run=client -o yaml > nginx-deployment.yaml
+----
+
+Create a Service named redis-service of type ClusterIP to expose pod redis on port 6379::
++
+----
+kubectl expose pod redis --port=6379 --name redis-service --dry-run=client -o yaml
+
+# or
+
+kubectl create service clusterip redis --tcp=6379:6379 --dry-run=client -o yaml
+----
+
+Create a Service named nginx of type NodePort to expose pod nginx's port 80 on port 30080 on the nodes::
++
+----
+kubectl expose pod nginx --port=80 --name nginx-service --dry-run=client -o yaml
+
+#(This will automatically use the pod's labels as selectors, but you cannot specify the node port. You have to generate a definition file and then add the node port in manually before creating the service with the pod.)
+
+# or
+
+kubectl create service nodeport nginx --tcp=80:80 --node-port=30080 --dry-run=client -o yaml
+----
+
+Different output types::
+
+* `-o json` Output a JSON formatted API object.
+
+* `-o name` Print only the resource name and nothing else.
+
+* `-o wide` Output in the plain-text format with any additional information.
+
+* `-o yaml` Output a YAML formatted API object.
+
+Reference: https://kubernetes.io/docs/reference/kubectl/conventions/
+
+https://kubernetes.io/docs/reference/kubectl/overview/
+
+https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+
+== Namespace
+
+.get/create in another namespace than default
+[source,bash]
+----
+kubectl get pods --namespace=kube-system
+
+kubectl create --namespace=kube-system -f <file>.yml
+----
+
+It is also possible to define namespace in defintion file:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+  namespace: kube-system
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+----
+
+.example specifying new namespace
+[source,yaml]
+----
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+----
+
+Then run create as usual with -f option
+
+or the imperative way
+
+----
+kubectl create namespace dev
+----
+
+Switch between namespaces::
++
+----
+kubectl config set-context $(kubectl config current-context) --namespace=dev
+----
+
+View in all namespaces::
++
+----
+kubectl get pods --all-namespaces
+----
+
+.resource quota
+[source,yaml]
+----
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: dev-quota
+  namespace: dev
+spec:
+  hard:
+    pods: "10"
+    request.cpu: "4"
+    request.memory: 5Gi
+    limits.cpu: "10"
+    limits.memory: 10Gi
+
+----
+
+.example of dns name when referring to service in other namespace
+----
+db-service.dev.svc.cluster.local
+----
+
+== Configuration
+
+.mapping between docker command and k8s
+image::documentation/images/docker-cmd-mapping.png[]
+
+[NOTE]
+====
+Remember, you CANNOT edit specifications of an existing POD other than the below.
+
+* spec.containers[*].image
+* spec.initContainers[*].image
+* spec.activeDeadlineSeconds
+* spec.tolerations
+
+So if you want to change the command or args for a running pod, you must delete and recreate it,
+====
