@@ -569,7 +569,7 @@ kubectl describe secret <token_name>
 
 The token can be used an authorization Bearer token in calls to api.
 
-If the application using the token is also deployed in the same K8s-cluster, then there is no need to export tokens. Instead the token is provided to a pod by mounting it as a _volume_.
+When the application using the token is deployed in the same K8s-cluster, then there is no need to export tokens. Instead the token is provided to a pod by mounting it as a _volume_.
 
 In k8s, every namespace has a default service account created. This gets mounted by default in all pods running in namespace. See "mounts" when doing `kubectl describe pod xxx`.
 
@@ -593,3 +593,164 @@ spec:
   automountServiceAccountToken: false
 ----
 
+=== Resource requirements
+
+image::resources.png[]
+
+image::resource-limiting.png[]
+
+image::resource-notes.png[]
+
+=== Taints and toleration
+
+Taints and tolerations are used to restrict which pods that can be scheduled on a node.
+
+* Taints are set on nodes
+
+* Tolerations are set on pods
+
+Syntax for setting taint::
+kubectl taint nodes <node-name> key=value:<taint-effect>
++
+There are three taint-effects: NoSchedule, PreferNoSchedule, NoExecute
++
+----
+kubectl taint nodes node1 app=blue:NoSchedule
+----
+
+Tolerations are added in definition::
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+  tolerations:
+    - key: "app"
+      operator: "Equal"
+      value: "blue"
+      effect: "NoSchedule"
+----
+
+----
+# Example of untainting a node
+kubectl taint nodes master node-role.kubernetes.io/master:NoSchedule-
+----
+
+Taint will only make sure that a certain node will accept a certain type of pods. But these pods may end up in other nodes as well. If the requirement is to run a type of pod on a specific node only, use concept <<Node affinity>>.
+
+=== Node selectors
+
+Sometimes we want to run "heavy" applications on nodes that are large enough to handle it. This assumes that we may have a cluster with large nodes, and some smaller nodes. We can then label the large nodes and make sure that the pod ends up there.
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+  nodeSelector:
+    size: Large
+----
+
+Syntax for labelling: `kubectl label nodes <node-name> <label-key>=<label-value>`
+
+----
+kubectl label nodes node01 size=Large
+----
+
+Using node selectors has its limitations. We cannot specify things like "run on Large or Medium" or "run only on NOT Small". For this, see <<Node affinity>>
+
+=== Node affinity
+
+.This does exactly the same as in the node selectors example
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: size
+                operator: In
+                values:
+                  - Large
+----
+
+.example of "run on Large and Medium"
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: size
+                operator: In
+                values:
+                  - Large
+                  - Medium
+----
+
+.example of "run on not Small"
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: size
+                operator: NotIn
+                values:
+                  - Small
+----
+
+About affinity types:
+
+* requiredDuringSchedulingIgnoredDuringExecution: This states that the scheduler should match the affinity rules, and if no node could be found, it does not deploy the pod. Already existing pods (when the affinity is set) is ignored and continues to run.
+
+* preferredDuringSchedulingIgnoredDuringExecution: States that if the scheduler cannot find a node that applies to the rules, then just run it on any node.
+
+====
+Make sure you check out these tips and tricks from other students who have cleared the exam:
+
+https://www.linkedin.com/pulse/my-ckad-exam-experience-atharva-chauthaiwale/
+
+https://medium.com/@harioverhere/ckad-certified-kubernetes-application-developer-my-journey-3afb0901014
+
+https://github.com/lucassha/CKAD-resources
+====
