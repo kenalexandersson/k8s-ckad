@@ -765,4 +765,53 @@ There are three types of multi-container pods:
 
 * ambassador
 
+== Observability
+
+Readiness probe is useful when starting containe where the container takes some time to fully warmup. K8s does not set the container to state Ready until the readiness probe succeeds.
+
+.example of readiness probe
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      readinessProbe:
+        httpGet:
+          path: /api/ready
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        # defaults to 3
+        failureThreshold: 8
+----
+
+Liveness probe helps to detect if an application no longer works, even thought the container is healthy. It sends a "ping" to the application, and if it fails it will delete the pod, effectively restarting it.
+
+.example of liveness probe
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      livenessProbe:
+        httpGet:
+          path: /api/ready
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        # defaults to 3
+        failureThreshold: 8
+----
+
+
 
