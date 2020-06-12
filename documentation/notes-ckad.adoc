@@ -551,5 +551,45 @@ kubectl exec ubuntu-sleeper whoami
 kubectl exec ubuntu-sleeper -- date -s '19 APR 2012 11:14:00'
 ----
 
+=== Service accounts
 
+Service accounts are used by applications for interacting with K8s (apis etc). Typically apps: Prometheus (for accessing metric), GitLab/Jenkins (for deploying applications).
+
+----
+kubectl create serviceaccount <name>
+
+kubectl get serviceaccount
+
+# A token is autmatically created and stored as a secret, use `kubectl describe` to see the name of token
+kubectl describe serviceaccount <name>
+
+# To see the secret
+kubectl describe secret <token_name>
+----
+
+The token can be used an authorization Bearer token in calls to api.
+
+If the application using the token is also deployed in the same K8s-cluster, then there is no need to export tokens. Instead the token is provided to a pod by mounting it as a _volume_.
+
+In k8s, every namespace has a default service account created. This gets mounted by default in all pods running in namespace. See "mounts" when doing `kubectl describe pod xxx`.
+
+[IMPORTANT]
+The default namespace service account is very restricted, it can only run very basic api queries.
+
+It is possible to define the pod to use other service accounts:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+  serviceAccountName: my-account-name
+  # If you want to disable auto-mounting of default service tokens
+  automountServiceAccountToken: false
+----
 
