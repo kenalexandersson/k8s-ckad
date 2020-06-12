@@ -495,8 +495,10 @@ Also the way kubernetes handles secrets. Such as:
 * Once the Pod that depends on the secret is deleted, kubelet will delete its local copy of the secret data as well.
 
 Read about the https://kubernetes.io/docs/concepts/configuration/secret/#protections[protections] and https://kubernetes.io/docs/concepts/configuration/secret/#risks[risks] of using secrets https://kubernetes.io/docs/concepts/configuration/secret/#risks[here]
-====
 
 Having said that, there are other better ways of handling sensitive data like passwords in Kubernetes, such as using tools like Helm Secrets, https://www.vaultproject.io/[HashiCorp Vault].
+
+====
+
 
 
