@@ -500,5 +500,56 @@ Having said that, there are other better ways of handling sensitive data like pa
 
 ====
 
+=== Security context
+
+How to set docker security related configs, such as user to run, or adding/removing linux capabilites such as MAC_ADMIN.
+
+.example setting user id for all containers running in pod (pod level)
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+  labels:
+    app: myapp
+spec:
+  securityContext:
+    runAsUser: 1000
+  containers:
+    - name: nginx
+      image: nginx
+----
+
+.example setting user id and adding a capability for a container (container level)
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      securityContext:
+        runAsUser: 1000
+        capabilities:
+          add: ["MAC_ADMIN"]
+----
+
+[NOTE]
+Declaring capabilities is only possible at container level
+
+----
+# Finding out the user running a container
+kubectl exec ubuntu-sleeper whoami
+
+# Setting the data
+kubectl exec ubuntu-sleeper -- date -s '19 APR 2012 11:14:00'
+----
+
 
 
