@@ -289,5 +289,214 @@ Remember, you CANNOT edit specifications of an existing POD other than the below
 * spec.activeDeadlineSeconds
 * spec.tolerations
 
-So if you want to change the command or args for a running pod, you must delete and recreate it,
+So if you want to change the command or args for a running pod, you must delete and recreate it.
+
+Examples:
+
+. `kubectl edit pod <pod name>` (will be saved in tmp dir)
+. `kubectl delete pod <pod_name>`
+. `kubectl create -f <path_to_saved_tmp_file>`
+
+Another way:
+
+. `kubectl get pod webapp -o yaml > my-new-pod.yaml`
+. `vi my-new-pod.yaml`
+. `kubectl delete pod <pod_name>>`
+. `kubectl create -f my-new-pod.yaml`
+
 ====
+
+=== ConfigMaps
+
+----
+# imperative way
+kubectl create configmap appconfig --from-literal=APP_COLOR=blue
+kubectl create configmap appconfig --from-file=app_config.properties
+
+# declarative way
+kubectl create -f <yaml>
+----
+
+.ConfigMap declaration yaml file
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: appconfig
+data:
+  APP_COLOR: blue
+  APP_MODE: production
+----
+
+----
+kubectl get configmaps
+
+kubectl describe configmaps
+----
+
+.example of using all properties of a configMap in a pod definition
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+  namespace: kube-system
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      envFrom:
+        - configMapRef:
+            name: appconfig
+----
+
+.example of using a single property of a configMap in a pod definition
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+  namespace: kube-system
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      env:
+        - name: APP_COLOR
+          valueFrom:
+            configMapKeyRef:
+              name: appconfig
+              key: APP_COLOR
+----
+
+=== Secrets
+
+----
+# imperative way
+kubectl create secret generic appsecret --from-literal=DB_HOST=mysql \
+                                        --from-literal=DB_PASS=passw0rd
+
+kubectl create secret generic appsecret --from-file=app_config.properties
+
+# declarative way
+kubectl create -f <yaml>
+----
+
+.Secret declaration yaml file
+[source,yaml]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appsecret
+data:
+  DB_HOST: mysql
+  DB_PASS: passw0rd
+----
+
+[IMPORTANT]
+====
+The key/values in a secret declarative definition file must be encoded!
+
+`echo -n 'mysql' | base64`
+
+`echo -n 'passw0rd' | base64`
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appsecret
+data:
+  DB_HOST: bXlzcWw=
+  DB_PASS: cGFzc3cwcmQ=
+----
+
+A value can be decoded back using
+`echo -n 'cGFzc3cwcmQ=' | base64 --decode`
+====
+
+----
+kubectl get secrets
+
+kubectl describe secrets
+
+# To view the values as well
+kubectl get secret appsecret -o yaml
+----
+
+.example of using all properties of a Secret in a pod definition
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+  namespace: kube-system
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      envFrom:
+        - secretRef:
+            name: appsecret
+----
+
+.example of using a single property of a Secret in a pod definition
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aName
+  namespace: kube-system
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      env:
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: appsecret
+              key: DB_PASS
+----
+
+[NOTE]
+====
+Remember that secrets encode data in base64 format. Anyone with the base64 encoded secret can easily decode it. As such the secrets can be considered as not very safe.
+
+The concept of safety of the Secrets is a bit confusing in Kubernetes. The https://kubernetes.io/docs/concepts/configuration/secret[kubernetes documentation page] and a lot of blogs out there refer to secrets as a "safer option" to store sensitive data. They are safer than storing in plain text as they reduce the risk of accidentally exposing passwords and other sensitive data. In my opinion it's not the secret itself that is safe, it is the practices around it.
+
+Secrets are not encrypted, so it is not safer in that sense. However, some best practices around using secrets make it safer. As in best practices like:
+
+* Not checking-in secret object definition files to source code repositories.
+
+* https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/[Enabling Encryption at Rest] for Secrets so they are stored encrypted in ETCD.
+
+Also the way kubernetes handles secrets. Such as:
+
+* A secret is only sent to a node if a pod on that node requires it.
+
+* Kubelet stores the secret into a tmpfs so that the secret is not written to disk storage.
+
+* Once the Pod that depends on the secret is deleted, kubelet will delete its local copy of the secret data as well.
+
+Read about the https://kubernetes.io/docs/concepts/configuration/secret/#protections[protections] and https://kubernetes.io/docs/concepts/configuration/secret/#risks[risks] of using secrets https://kubernetes.io/docs/concepts/configuration/secret/#risks[here]
+====
+
+Having said that, there are other better ways of handling sensitive data like passwords in Kubernetes, such as using tools like Helm Secrets, https://www.vaultproject.io/[HashiCorp Vault].
+
+
