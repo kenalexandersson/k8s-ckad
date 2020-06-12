@@ -754,3 +754,15 @@ https://medium.com/@harioverhere/ckad-certified-kubernetes-application-developer
 
 https://github.com/lucassha/CKAD-resources
 ====
+
+== Multi-container pods
+
+There are three types of multi-container pods:
+
+* sidecar
+
+* adapter
+
+* ambassador
+
+
