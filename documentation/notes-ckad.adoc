@@ -813,5 +813,52 @@ spec:
         failureThreshold: 8
 ----
 
+== Logging
 
+----
+kubectl logs -f webapp-1
+
+# if pod contains multiple containers, the wanted container name must given as the last argument
+kubectl logs -f webapp-1 containername
+----
+
+== Monitoring
+
+Metrics server is an in-memory server that monitors the whole K8s cluster. For more advanced solutions, look at Prometheus, ELK stack etc.
+
+image::metrics.png[]
+
+Enable on minikube by:
+----
+minikube addons enable metrics-server
+----
+
+Enable on others:
+----
+git clone https://github.com/kubernetes-incubator/metrics-serve.git
+
+cd into directory
+
+kubectl create -f .
+----
+
+View:
+
+----
+kubectl top node
+
+kubectl top pod
+----
+
+== Labels and selectors
+
+image::labels-selectors.png[]
+
+Usage from command line:
+
+----
+kubectl get pods --selector app=app3
+
+kubectl get all --selector env=prod,bu=finance,tier=frontend
+----
 
