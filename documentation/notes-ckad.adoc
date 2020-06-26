@@ -862,3 +862,88 @@ kubectl get pods --selector app=app3
 kubectl get all --selector env=prod,bu=finance,tier=frontend
 ----
 
+== Rollout
+
+----
+kubectl rollout status deployment/myapp-deployment
+
+kubectl rollout history deployment/myapp-deployment
+
+kubectl rollout undo deployment/myapp-deployment
+----
+
+image::deployment-strategy.png[]
+
+Rolling update is the default.
+
+== Jobs and cronjobs
+
+Some containers should just perform a task than exit. K8s default pod mode is "restartPolicy: always", which results in the pod getting started again and again.
+
+To set K8s to just run it once:
+
+image::restartpolicy.png[]
+
+Kubernetes jobs are like replicasets, with the difference that they will make sure to bring up all replicas, have them perform their tasks and then finish.
+
+.example of job definition
+[source,yaml]
+----
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: math-add-job
+spec:
+  # execute and make sure that there are 3 completions
+  completions: 3
+  # create three prods in parallel (the default is sequentially)
+  parallelism: 3
+  template:
+    spec:
+      containers:
+        - name: math-add
+          image: ubuntu
+          command: ['expr', '3', '+', '2']
+      restartPolicy: Never
+----
+
+----
+kubectl create -f job-definition.yaml
+
+kubectl get jobs
+
+kubectl get job math-add-job
+----
+
+Cronjob is a job that can be scheduled.
+
+.example of cronjob definition
+[source,yaml]
+----
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: reporting-cron-job
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      # execute and make sure that there are 3 completions
+      completions: 3
+      # create three prods in parallel (the default is sequentially)
+      parallelism: 3
+      template:
+        spec:
+          containers:
+            - name: math-add
+              image: ubuntu
+              command: ['expr', '3', '+', '2']
+          restartPolicy: Never
+
+----
+
+----
+kubectl create -f cron-job-definition.yaml
+
+kubectl get cronjobs
+----
