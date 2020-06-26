@@ -150,7 +150,8 @@ kubectl create deployment --image=nginx nginx --dry-run=client -o yaml
 ----
 
 [IMPORTANT]
-kubectl create deployment does not have a --replicas option. You could first create it and then scale it using the kubectl scale command
+kubectl create deployment does not have a --replicas option.
+You could first create it and then scale it using the kubectl scale command
 
 Save it to a file - (If you need to modify or add some other details)::
 +
@@ -476,17 +477,25 @@ spec:
 
 [NOTE]
 ====
-Remember that secrets encode data in base64 format. Anyone with the base64 encoded secret can easily decode it. As such the secrets can be considered as not very safe.
+Remember that secrets encode data in base64 format.
+Anyone with the base64 encoded secret can easily decode it.
+As such the secrets can be considered as not very safe.
 
-The concept of safety of the Secrets is a bit confusing in Kubernetes. The https://kubernetes.io/docs/concepts/configuration/secret[kubernetes documentation page] and a lot of blogs out there refer to secrets as a "safer option" to store sensitive data. They are safer than storing in plain text as they reduce the risk of accidentally exposing passwords and other sensitive data. In my opinion it's not the secret itself that is safe, it is the practices around it.
+The concept of safety of the Secrets is a bit confusing in Kubernetes.
+The https://kubernetes.io/docs/concepts/configuration/secret[kubernetes documentation page] and a lot of blogs out there refer to secrets as a "safer option" to store sensitive data.
+They are safer than storing in plain text as they reduce the risk of accidentally exposing passwords and other sensitive data.
+In my opinion it's not the secret itself that is safe, it is the practices around it.
 
-Secrets are not encrypted, so it is not safer in that sense. However, some best practices around using secrets make it safer. As in best practices like:
+Secrets are not encrypted, so it is not safer in that sense.
+However, some best practices around using secrets make it safer.
+As in best practices like:
 
 * Not checking-in secret object definition files to source code repositories.
 
 * https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/[Enabling Encryption at Rest] for Secrets so they are stored encrypted in ETCD.
 
-Also the way kubernetes handles secrets. Such as:
+Also the way kubernetes handles secrets.
+Such as:
 
 * A secret is only sent to a node if a pod on that node requires it.
 
@@ -553,7 +562,8 @@ kubectl exec ubuntu-sleeper -- date -s '19 APR 2012 11:14:00'
 
 === Service accounts
 
-Service accounts are used by applications for interacting with K8s (apis etc). Typically apps: Prometheus (for accessing metric), GitLab/Jenkins (for deploying applications).
+Service accounts are used by applications for interacting with K8s (apis etc).
+Typically apps: Prometheus (for accessing metric), GitLab/Jenkins (for deploying applications).
 
 ----
 kubectl create serviceaccount <name>
@@ -569,9 +579,12 @@ kubectl describe secret <token_name>
 
 The token can be used an authorization Bearer token in calls to api.
 
-When the application using the token is deployed in the same K8s-cluster, then there is no need to export tokens. Instead the token is provided to a pod by mounting it as a _volume_.
+When the application using the token is deployed in the same K8s-cluster, then there is no need to export tokens.
+Instead the token is provided to a pod by mounting it as a _volume_.
 
-In k8s, every namespace has a default service account created. This gets mounted by default in all pods running in namespace. See "mounts" when doing `kubectl describe pod xxx`.
+In k8s, every namespace has a default service account created.
+This gets mounted by default in all pods running in namespace.
+See "mounts" when doing `kubectl describe pod xxx`.
 
 [IMPORTANT]
 The default namespace service account is very restricted, it can only run very basic api queries.
@@ -642,11 +655,15 @@ spec:
 kubectl taint nodes master node-role.kubernetes.io/master:NoSchedule-
 ----
 
-Taint will only make sure that a certain node will accept a certain type of pods. But these pods may end up in other nodes as well. If the requirement is to run a type of pod on a specific node only, use concept <<Node affinity>>.
+Taint will only make sure that a certain node will accept a certain type of pods.
+But these pods may end up in other nodes as well.
+If the requirement is to run a type of pod on a specific node only, use concept <<Node affinity>>.
 
 === Node selectors
 
-Sometimes we want to run "heavy" applications on nodes that are large enough to handle it. This assumes that we may have a cluster with large nodes, and some smaller nodes. We can then label the large nodes and make sure that the pod ends up there.
+Sometimes we want to run "heavy" applications on nodes that are large enough to handle it.
+This assumes that we may have a cluster with large nodes, and some smaller nodes.
+We can then label the large nodes and make sure that the pod ends up there.
 
 [source,yaml]
 ----
@@ -668,7 +685,9 @@ Syntax for labelling: `kubectl label nodes <node-name> <label-key>=<label-value>
 kubectl label nodes node01 size=Large
 ----
 
-Using node selectors has its limitations. We cannot specify things like "run on Large or Medium" or "run only on NOT Small". For this, see <<Node affinity>>
+Using node selectors has its limitations.
+We cannot specify things like "run on Large or Medium" or "run only on NOT Small".
+For this, see <<Node affinity>>
 
 === Node affinity
 
@@ -741,7 +760,8 @@ spec:
 
 About affinity types:
 
-* requiredDuringSchedulingIgnoredDuringExecution: This states that the scheduler should match the affinity rules, and if no node could be found, it does not deploy the pod. Already existing pods (when the affinity is set) is ignored and continues to run.
+* requiredDuringSchedulingIgnoredDuringExecution: This states that the scheduler should match the affinity rules, and if no node could be found, it does not deploy the pod.
+Already existing pods (when the affinity is set) is ignored and continues to run.
 
 * preferredDuringSchedulingIgnoredDuringExecution: States that if the scheduler cannot find a node that applies to the rules, then just run it on any node.
 
@@ -767,7 +787,8 @@ There are three types of multi-container pods:
 
 == Observability
 
-Readiness probe is useful when starting containe where the container takes some time to fully warmup. K8s does not set the container to state Ready until the readiness probe succeeds.
+Readiness probe is useful when starting containe where the container takes some time to fully warmup.
+K8s does not set the container to state Ready until the readiness probe succeeds.
 
 .example of readiness probe
 [source,yaml]
@@ -790,7 +811,8 @@ spec:
         failureThreshold: 8
 ----
 
-Liveness probe helps to detect if an application no longer works, even thought the container is healthy. It sends a "ping" to the application, and if it fails it will delete the pod, effectively restarting it.
+Liveness probe helps to detect if an application no longer works, even thought the container is healthy.
+It sends a "ping" to the application, and if it fails it will delete the pod, effectively restarting it.
 
 .example of liveness probe
 [source,yaml]
@@ -824,16 +846,19 @@ kubectl logs -f webapp-1 containername
 
 == Monitoring
 
-Metrics server is an in-memory server that monitors the whole K8s cluster. For more advanced solutions, look at Prometheus, ELK stack etc.
+Metrics server is an in-memory server that monitors the whole K8s cluster.
+For more advanced solutions, look at Prometheus, ELK stack etc.
 
 image::metrics.png[]
 
 Enable on minikube by:
+
 ----
 minikube addons enable metrics-server
 ----
 
 Enable on others:
+
 ----
 git clone https://github.com/kubernetes-incubator/metrics-serve.git
 
@@ -878,7 +903,8 @@ Rolling update is the default.
 
 == Jobs and cronjobs
 
-Some containers should just perform a task than exit. K8s default pod mode is "restartPolicy: always", which results in the pod getting started again and again.
+Some containers should just perform a task than exit.
+K8s default pod mode is "restartPolicy: always", which results in the pod getting started again and again.
 
 To set K8s to just run it once:
 
@@ -946,4 +972,147 @@ spec:
 kubectl create -f cron-job-definition.yaml
 
 kubectl get cronjobs
+----
+
+== Services
+
+NodePort is for letting an outside network access pods inside the cluster.
+Like from localhost -> app run in K8s
+
+ClusterIP is used for letting pods communicate with each other inside the cluster.
+It is a way to group pods and having them accessed by other pods via a service.
+
+=== NodePort
+
+image::services.png[]
+
+.example of nodeport service definition
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30008
+  selector:
+    app: myapp
+    type: frontend
+----
+
+----
+kubectl create -f service-definition.yml
+
+kubectl get services
+----
+
+=== ClusterIp
+
+image::service-clusterip.png[]
+
+.example of clusterip service definition
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: myapp
+    type: backend
+----
+
+== Ingress networking
+
+image::ingress.png[]
+
+=== Ingress controller
+
+The course states that there is no ingress controller by default, one must be installed.
+The example they are using seems old, new ways found when googling (like https://kubernetes.io/docs/tasks/access-application-cluster/ingress-minikube/).
+Below pic shows the way described in course
+
+image::ingress-controller.png[]
+
+=== Ingress resources
+
+[source,yaml]
+----
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-wear
+spec:
+  backend:
+    serviceName: wear-service
+    servicePort: 80
+----
+
+----
+kubectl create -f ingress-wear.yml
+
+kubectl get ingress
+----
+
+==== Rules
+
+image::ingress-rule-1.png[200,200]
+
+[source,yaml]
+----
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-wear-watch
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /wear
+            backend:
+              serviceName: wear-service
+              servicePort: 80
+
+          - path: /watch
+            backend:
+              serviceName: watch-service
+              servicePort: 80
+----
+
+----
+kubectl describe ingress ingress-wear-watch
+----
+
+image::ingress-rule-2.png[400,400]
+
+[source,yaml]
+----
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-wear-watch
+spec:
+  rules:
+    - host: wear.my-online-store.com
+      http:
+        paths:
+         - backend:
+             serviceName: wear-service
+             servicePort: 80
+
+    - host: watch.my-online-store.com
+      http:
+        paths:
+          - backend:
+              serviceName: watch-service
+              servicePort: 80
 ----
