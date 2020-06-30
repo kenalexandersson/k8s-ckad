@@ -903,7 +903,7 @@ Rolling update is the default.
 
 == Jobs and cronjobs
 
-Some containers should just perform a task than exit.
+Some containers should just perform a task then exit.
 K8s default pod mode is "restartPolicy: always", which results in the pod getting started again and again.
 
 To set K8s to just run it once:
@@ -1116,3 +1116,71 @@ spec:
               serviceName: watch-service
               servicePort: 80
 ----
+
+== Networking policies
+
+.Ingress and Egress
+image::ingressegress.png[500,500]
+
+Networking policies allow us to define policies like "the web pod cannot communicate with the db pod directly".
+
+image::restricting-pod-comm.png[500,500]
+
+[source,yaml]
+----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-policy
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+  - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              name: api-pod
+      ports:
+        - protocol: TCP
+          port: 3306
+----
+
+----
+kubectl get networkpolicies
+
+kubectl create -f policy-definition.yml
+----
+
+.example of an egress (internal only allowed to send traffic to mysql and payroll)
+[source,yaml]
+----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: internal-policy
+spec:
+  podSelector:
+    matchLabels:
+      role: internal
+  policyTypes:
+  - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              name: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+    - to:
+       - podSelector:
+           matchLabels:
+             name: payroll
+      ports:
+        - protocol: TCP
+          port: 8080
+----
+
