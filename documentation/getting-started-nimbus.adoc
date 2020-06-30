@@ -1,0 +1,213 @@
+= Hej
+:imagesdir: images
+
+== Install minikube
+
+----
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-latest.x86_64.rpm
+
+sudo rpm -ivh minikube-latest.x86_64.rpm
+----
+
+Start minikube using docker driver
+----
+minikube start --driver=docker
+
+# To make it default driver (optional)
+minikube config set driver docker
+----
+
+See https://minikube.sigs.k8s.io/docs/start/ for details.
+
+For other drivers, see https://minikube.sigs.k8s.io/docs/drivers/
+
+.list pods in all namespaces (right now for listing the pods installed by default in namespace kube-system)
+----
+kubectl get pods -A
+kubectl get po -A
+kubectl get po --namespace=kube-system
+----
+
+image::gs-control-plane-components.png[]
+
+.dashboard
+----
+minikube dashboard
+----
+
+== Nodes
+
+Endast en nod i minikube, master/node i en.
+
+----
+kubectl get nodes -o wide
+----
+
+== Pods
+
+We want to deploy our applications as containers in a Kubernetes cluster. The containers, here in the form of Docker containers, are not deployed directly on the worker nodes, instead they are encapsulated into Kubernetes objects known as _pods_.
+
+.Example of a pod with a docker container deployed on a node
+image::gs-pods-1.png[]
+
+Let's say that our container `my-image` runs poorly due to high load (many users accesses it), so we want to scale up a bit by adding another instance of our container.
+
+This is _not_ achieved by adding yet another container in the pod. Instead we deploy the new instance in its own pod. The rule of thumb is _one pod, one container_.
+
+image::gs-pods-2.png[]
+
+----
+# Deploy from the commandline
+kubectl run hello-minikube --image=k8s.gcr.io/echoserver:1.4 --port=8080
+
+kubectl get pods
+
+kubectl describe pods
+
+kubectl expose pod hello-minikube --type=NodePort
+
+minikube service hello-minikube --url
+
+kubectl delete pod hello-minikube
+
+kubectl delete service hello-minikube
+----
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+spec:
+  containers:
+    - name: myapp
+      image: k8s.gcr.io/echoserver:1.4
+      ports:
+        - containerPort: 8080
+----
+
+----
+kubectl create -f myapp-pod.yml
+
+#edit file for already created pod, then update with
+kubectl apply -f myapp-pod.yml
+
+kubectl delete pod myapp
+----
+
+== Replicasets
+----
+# replicaset
+kubectl get replicaset
+----
+
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: myapp-replicaset
+  labels:
+    app: myapp
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: aName
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+  selector:
+    matchLabels:
+      app: myapp
+----
+
+----
+
+# for replicaset, having apiVersion: apps/v1
+kubectl create -f myapp-replicaset.yml
+
+kubectl get all
+
+kubectl describe replicasets
+#or
+kubectl describe replicaset myapp-replicaset
+
+# Delete the pod and see what happens
+kubectl delete pod myapp-replicaset-XXXXX
+kubectl get pods
+
+# Scale up by changing replicas to 6, the apply changed
+kubectl apply -f myapp-replicaset.yml
+
+# Delete
+kubectl delete replicaset myapp-replicaset
+
+kubectl get all
+----
+
+----
+kubectl edit replicaset new-replica-set
+
+kubectl replace -f my-replicaset-def.yml
+
+# scale already running
+kubectl scale --replicas=6 -f my-replicaset-def.yml
+
+# scale already running, using type and name instead of file
+kubectl scale --replicas=6 replicaset my-replicaset
+----
+
+== Deployments
+
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-deployment
+  labels:
+    app: myapp
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: aName
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+  selector:
+    matchLabels:
+      app: myapp
+----
+
+----
+kubectl create -f deployment-definition.yml
+or
+kubectl create -f . (will run all def ymls in dir)
+
+kubectl get deployments
+
+kubectl describe deployment myapp-deployment
+
+kubectl get all
+
+kubectl apply -f deployment-definition.yml
+
+kubectl set image deployment/myapp-deployment apa=apa:1.9.1
+
+kubectl rollout status deployment/myapp-deployment
+
+kubectl rollout history deployment/myapp-deployment
+
+kubectl rollout undo deployment/myapp-deployment
+
+kubectl delete deployment myapp-deployment
+----
