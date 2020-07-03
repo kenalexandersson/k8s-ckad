@@ -844,6 +844,16 @@ kubectl logs -f webapp-1
 kubectl logs -f webapp-1 containername
 ----
 
+== Entering a pod
+
+----
+kubectl exec -it <pod-name> -- bash
+
+# also possible copying files
+kubectl cp <pod-name>:</path/to/remote/file> </path/to/local/file>
+----
+
+
 == Monitoring
 
 Metrics server is an in-memory server that monitors the whole K8s cluster.
@@ -1184,3 +1194,122 @@ spec:
           port: 8080
 ----
 
+== Volumes
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: random-number-generator
+spec:
+  containers:
+    - image: alpine
+      name: alpine
+      command: ["/bin/sh", "-c"]
+      args: ["shuf -i 0-100 -n 1 >> /opt/number.out;"]
+      volumeMounts:
+        - mountPath: /opt
+          name: data-volume
+
+  volumes:
+    - name: data-volume
+      hostPath:
+        path: /data
+        type: Directory
+----
+
+image::volumes.png[300,300]
+
+=== Persistent volumes (PV)
+
+Just using volumes as above means that every user (deploying pods) must configure volumes for each container. This does not scale well. Kubernetes provides a way of centralizing the handling via persistent volumes.
+
+Persistent volumes = a cluster wide pool of volumes administered by an k8s-admin.
+
+.creating a persistent volume (done by administrators)
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vol1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  awsElasticBlockStore:
+    volumeID: <volume-id>
+    fsType: ext4
+  persistentVolumeReclaimPolicy: Delete
+----
+
+About _persistentVolumeReclaimPolicy_:
+
+- Retain -- manual reclamation
+- Recycle -- basic scrub (`rm -rf /thevolume/*`) _deprecated_
+- Delete -- associated storage asset such as AWS EBS, GCE PD, Azure Disk, or OpenStack Cinder volume is deleted
+
+----
+kubectl create -f pv-definition.yml
+
+kubectl get persistentvolume
+----
+
+=== Persistent volume claims (PVC)
+
+A PVC gets bound to a PV if it matches criteria specified in claim. The binding is handled by k8s, and it will automatically bind to a PV that matches criteria. If there are several PV:s that matches, it is possible to select a specific by using labels.
+
+[IMPORTANT]
+If a PVC of "size 1" gets bound to a PV of "size 2" (for instance if no other PVC are available that matches "size 1"), then it will hog that PV, no other PVC of can be bound, meaning that the remaining unused size of the PV cannot be utilized.
+
+If there are no PV:s available that matches a PVC, then the PVC will be set on queue until an admin provides more PV:s.
+
+.creating a PVC
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+----
+
+----
+kubectl create myclaim-definition.yml
+
+kubectl get persistentvolumeclaim
+----
+
+==== Using PVC in pods (or replicasets or deployments)
+
+Once you create a PVC use it in a POD definition file by specifying the PVC Claim name under persistentVolumeClaim section in the volumes section like this:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: myfrontend
+      image: nginx
+      volumeMounts:
+        - mountPath: "/var/www/html"
+          name: mypd
+  volumes:
+    - name: mypd
+      persistentVolumeClaim:
+        claimName: myclaim
+----
+
+The same is true for ReplicaSets or Deployments. Add this to the pod template section of a Deployment on ReplicaSet.
+
+image::volumes-pv-pvc.png[]
