@@ -1,6 +1,18 @@
 = Hej
 :imagesdir: images
 
+== Install kubectl
+
+=== Add auto completion
+
+To make this automatic for every terminal, you can add it to your ${HOME}/.bashrc
+file:
+----
+echo "source <(kubectl completion bash)" >> ${HOME}/.bashrc
+----
+
+== install Intellij plugin
+
 == Install minikube
 
 ----
@@ -30,10 +42,39 @@ kubectl get po --namespace=kube-system
 
 image::gs-control-plane-components.png[]
 
+[NOTE]
+About kubectl here, kubectl help
+
 .dashboard
 ----
 minikube dashboard
 ----
+
+or
+
+http://localhost:
+8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/
+proxy/
+
+== Namespaces
+Kubernetes uses namespaces to organize objects in the cluster. You can think of each
+namespace as a folder that holds a set of objects. By default, the kubectl command-
+line tool interacts with the default namespace. If you want to use a different name‐
+space, you can pass kubectl the --namespace flag. For example,
+kubectl --namespace=mystuff references objects in the mystuff namespace. If you
+want to interact with all namespaces—for example, to list all Pods in your cluster—
+you can pass the --all-namespaces flag.
+
+=== Contexts
+If you want to change the default namespace more permanently, you can use a con‐
+text. This gets recorded in a kubectl configuration file, usually located at
+$HOME/.kube/confg. This configuration file also stores how to both find and authen‐
+ticate to your cluster. For example, you can create a context with a different default
+namespace for your kubectl commands using:
+$ kubectl config set-context my-context --namespace=mystuff
+This creates a new context, but it doesn’t actually start using it yet. To use this newly
+created context, you can run:
+$ kubectl config use-context my-context
 
 == Nodes
 
@@ -41,6 +82,8 @@ Endast en nod i minikube, master/node i en.
 
 ----
 kubectl get nodes -o wide
+
+kubectl top nodes
 ----
 
 == Pods
@@ -67,6 +110,10 @@ kubectl describe pods
 kubectl expose pod hello-minikube --type=NodePort
 
 minikube service hello-minikube --url
+
+kubectl exec -it hello-minikube -- bash
+
+kubectl top pods
 
 kubectl delete pod hello-minikube
 
