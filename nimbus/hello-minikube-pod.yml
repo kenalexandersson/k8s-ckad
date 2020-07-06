@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello-minikube
+spec:
+  containers:
+    - name: hello-minikube
+      image: k8s.gcr.io/echoserver:1.4
+      ports:
+        - containerPort: 8080
