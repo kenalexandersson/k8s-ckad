@@ -2,6 +2,17 @@
 :toc: left
 :imagesdir: images
 
+== Disposition
+
+This knowledge session starts with a <<overview>>, directly followed by the two main parts, <<basics-hands-on>> and <<request-hands-on>>.
+
+In the overview we will fly over Kubernetes on a high altitude, briefly touching on what Kubernetes is. We will then continue with installing a set of tools before going hands-on.
+
+In the first hands-on part you will be introduced to the basic Kubernetes objects and concepts at the same time when you actually are creating and using them. In this section you will use the `kubectl` command line tool, which will give you a good understanding on how to manage containers deployed in Kubernetes.
+
+The final part will focus on Crew-Request in Kubernetes, here you will deploy the real application in a real Kubernetes cluster.
+
+[[overview]]
 == Kubernetes overview
 
 === Container orchestration
@@ -42,10 +53,11 @@ image::gs-cluster-control-plane.png[]
 The control plane watches over the nodes in the cluster and is responsible for the actual orchestration of containers on the worker nodes.
 
 [NOTE]
-Typically you have several nodes in a cluster; in a learning or resource-limited environment, you might have just one. The minikube installed previously gives a K8s cluster with a single node where the Control plane and the containers are run.
+Typically, you have several nodes in a cluster; in a learning or resource-limited environment, you might have just one. The minikube installed previously gives a K8s cluster with a single node where the Control plane and the containers are run.
 
 Here is another view of Control Plane and worker nodes, showing more details about the Kubernetes components in play.
 
+[[control-plane-components]]
 image::gs-control-plane-components.png[]
 
 When you install Kubernetes on a System, you are actually installing the following
@@ -66,7 +78,12 @@ Node components::
 
 === Install kubectl
 
-TODO: What is?
+The Kubernetes command-line tool, kubectl, allows you to run commands against Kubernetes clusters. You can use kubectl to deploy applications, inspect and manage cluster resources, and view logs.
+
+Technically, kubectl communicates with the cluster via the API Server mentioned earlier, by sending http REST requests.
+
+[TIP]
+You will get familiar with useful kubectl commands as we go along. Regardless, it could be good to know that there is a complete list of kubectl commands at https://kubernetes.io/docs/reference/kubectl/overview/.
 
 Linux::
 
@@ -107,9 +124,11 @@ file:
 echo "source <(kubectl completion bash)" >> ${HOME}/.bashrc
 ----
 
-=== install Intellij plugin
+=== Install Intellij plugin
 
-Search for the official Intellij _Kubernetes_ plugin in Intellij Plugins sections and install it.
+The Intellij plugin for Kubernetes is very helpful.
+
+Search for the official Intellij _Kubernetes_ plugin by JetBrains in Intellij Plugins sections and install it.
 
 image::gs-k8s-plugin.png[]
 
@@ -117,19 +136,29 @@ image::gs-k8s-plugin.png[]
 
 Minikube is a tool that makes it easy to run Kubernetes locally. Minikube runs a single-node Kubernetes cluster inside a Virtual Machine (VM) on your laptop.
 
-.Download and install
+.Download and install om Linux (Fedora)
 ----
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-latest.x86_64.rpm
 
 sudo rpm -ivh minikube-latest.x86_64.rpm
 ----
 
+.Install on Windows
+
+. Download installer: https://github.com/kubernetes/minikube/releases/latest/download/minikube-installer.exe
+
+. Run the installer
+
 .Verify
 ----
 minikube version
 ----
 
-== Hands-on
+[IMPORTANT]
+We are aiming to run minikube using it's preferred Docker driver. If you for some reason need to use another driver like kvm2, Hyper-V or VirtualBox, please see https://kubernetes.io/docs/tasks/tools/install-minikube/ and https://minikube.sigs.k8s.io/docs/drivers
+
+[[basics-hands-on]]
+== Kubernetes basics hands-on
 
 === Minikube
 
@@ -152,44 +181,9 @@ minikube config set driver docker
 Try running your first kubectl command now:
 
 ----
-# Display addresses of the master and services
+# Display addresses of the control plane and services
 kubectl cluster-info
 ----
-
-
-=== Namespaces
-
-.list pods in all namespaces (right now for listing the pods installed by default in namespace kube-system)
-----
-kubectl get pods -A
-kubectl get po -A
-kubectl get po --namespace=kube-system
-----
-
-Kubernetes uses namespaces to organize objects in the cluster. You can think of each namespace as a folder that holds a set of objects.
-
-By default, the kubectl command-line tool interacts with the default namespace. If you want to use a different namespace, you can pass `kubectl` the `--namespace` flag. For example,
-`kubectl --namespace=mystuff` references objects in the _mystuff_ namespace.
-
-If you want to interact with all namespaces — for example, to list all Pods in your cluster — you can pass the `--all-namespaces` flag.
-
-[TIP]
-====
-If you want to change the default namespace more permanently, you can use a _context_.
-
-This gets recorded in a kubectl configuration file, usually located at
-`$HOME/.kube/config`. This configuration file also stores how to both find and authenticate to your cluster.
-
-For example, you can create a context with a different default namespace for your kubectl commands using:
-----
-$ kubectl config set-context my-context --namespace=mystuff
-----
-This creates a new context, but it doesn’t actually start using it yet. To use this newly
-created context, you can run:
-----
-$ kubectl config use-context my-context
-----
-====
 
 === Nodes
 As you probably recall, a full-fledged Kubernetes cluster consist of a control-plane (master) and worker nodes. In minikube this has been simplified, it uses only one node where the control-plane and containers are run.
@@ -597,7 +591,7 @@ image::gs-dep-rollout-ongoing.png[]
 .example completed rollout of new version
 image::gs-dep-rollout-complete.png[]
 
-So how do we create a deployment. As with the previous components, we first create a deployment definition file. The contents of the deployment definition file are exactly similar to the replicaset definition file, except for the kind, which is now
+So how do we create a deployment? As with the previous components, we first create a deployment definition file. The contents of the deployment definition file are exactly similar to the replicaset definition file, except for the kind, which is now
 going to be Deployment.
 
 [source,yaml]
@@ -644,14 +638,14 @@ kubectl get deployments
 # Go wider (you can see the image and version here)
 kubectl get deployments -o wide
 
-# Perhaps easiest is to do a "get all", showing all object, i.e. pods, replicasets and deployments (and more)
+# Perhaps easiest is to do a "get all", showing all objects, i.e. pods, replicasets and deployments (and more)
 kubectl get all
 
 # Do check the details (pay attention to the fields)
 kubectl describe deployments
 ----
 
-. Try out a rolling upgrade by changing the version of the image to 1.4, then apply it
+. Try out a rolling upgrade by changing the version of the image to 1.4 in the file, then apply it
 +
 ----
 # Apply changes
@@ -661,7 +655,7 @@ kubectl apply -f hello-minikube-dep.yml
 kubectl describe deployment
 ----
 
-. After the rollout is complete, run `kubectl describe deployment` again and look at the events section at the end. There you should see how the rollout was executed.
+. After the rollout is complete, run `kubectl describe deployments` again and look at the events section at the end. There you should see how the rollout was executed.
 
 . Try out some related commands that are self-explanatory
 +
@@ -696,4 +690,49 @@ This should open up the dashboard in your web browser. Browse around in it, take
 
 === Ingress
 
+=== Namespaces
+
+To prepare you a bit for the next section, <<request-hands-on>>, we need to talk about the concept of namespaces. Kubernetes uses namespaces to organize objects in the cluster. You can think of each namespace as a folder that holds a set of objects.
+
+By default, the kubectl command-line tool (and the dashboard) interacts with the default namespace. If you want to use a different namespace, you can pass `kubectl` the `--namespace` flag. For example,
+`kubectl --namespace=mystuff` references objects in the _mystuff_ namespace.
+
+If you want to interact with all namespaces — for example, to list all Pods in your cluster — you can pass the `--all-namespaces` flag, or the abbreviation `-A`.
+
+.Examples
+----
+# list pods in all namespaces
+kubectl get pods -A
+
+# list Kubernetes' own pods in the namespace kube-system
+kubectl get pods --namespace=kube-system
+----
+
+Suggestion: Compare the output of `kubectl get pods --namespace=kube-system` with the <<control-plane-components,control-plane components diagram>>.
+
+[TIP]
+====
+If you want to change the default namespace more permanently, you can use a _context_.
+
+This gets recorded in a kubectl configuration file, usually located at
+`$HOME/.kube/config`. This configuration file also stores how to both find and authenticate to your cluster.
+
+For example, you can create a context with a different default namespace for your kubectl commands using:
+----
+$ kubectl config set-context my-context --namespace=mystuff
+----
+This creates a new context, but it doesn’t actually start using it yet. To use this newly
+created context, you can run:
+----
+$ kubectl config use-context my-context
+----
+====
+
+[[request-hands-on]]
+== Kubernetes Crew-Request hands-on
+
 === Helm
+
+=== Crew-Request Kubernetes overview
+
+
