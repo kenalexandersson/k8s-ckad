@@ -244,7 +244,7 @@ kubectl create namespace dev
 Switch between namespaces::
 +
 ----
-kubectl config set-context $(kubectl config current-context) --namespace=dev
+kubectl config set-context --current --namespace=dev
 ----
 
 View in all namespaces::
@@ -1313,3 +1313,123 @@ spec:
 The same is true for ReplicaSets or Deployments. Add this to the pod template section of a Deployment on ReplicaSet.
 
 image::volumes-pv-pvc.png[]
+
+== Additional notes
+
+=== watch
+
+It is possible to watch (like tail -f) a pod:
+
+`kubectl get po --watch`
+
+=== explain
+
+`kubectl explain` - will show a brief explanation of an object. If `--recursive` is added, all subsequent fields will be shown also
+
+.Example
+----
+kubectl explain po --recursive
+
+# It is possible to drill down the structure also:
+kubectl explain po.spec.containers --recursive
+----
+
+=== Running curl inside the cluster for verifying things
+Sometimes an HTTP endpoint inside the Kubernetes cluster needs to be verified. This can be done using either `kubectl port-forward` with a local curl command in the Linux terminal or by launching a Kubernetes pod that can run the curl command inside the cluster, e.g.:
+
+`kubectl run --image=curlimages/curl --restart=Never -i --rm curl-pod -- curl -v $service:$port -s -m1`
+
+[NOTE]
+====
+`-v` shows a more verbose curl result, including http status codes
+
+`-s` makes the curl silent on errors
+
+`-m1` Maximum time (in seconds) allowed for the transfer
+====
+
+=== Learn other useful kubectl commands
+The commands `label`, `annotate`, `expose`, and `set` can be useful for some tasks.
+
+Practice rolling out and rolling back upgrades of a deployment using the `kubectl rollout` command.
+
+To get a good overview of available labels on a set of Kubernetes objects, use the `--show-labels` option of the `kubectl get` command.
+
+If you are requested to update or fix a problem of an existing resource, use the `kubectl get ... -o yaml > n.yaml` command to get started.
+
+[TIP]
+Go through all kubectl commands at https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands. Even some imperative commands could be good to know to help finish questions in the examination quickly.
+
+=== Setup vi
+
+Create a .vimrc file in the home folder with the command `vi ~/.vimrc` and enter:
+
+----
+set number
+set tabstop=2 shiftwidth=2 expandtab
+----
+
+This turns on numbered lines and sets up the tab indentation to two spaces.
+
+=== Useful vi commands
+
+`Shift + H` - "High" - goes to the higher part of screen
+
+`Shift + M` - "Middle" - goes to the middle part of screen
+
+`Shift + L` - "Low" - goes to the lower part of screen
+
+`<linenumber>gg`, example `42gg` - goes to line 42
+
+`Shift + G` - goto end of file
+
+`gg` - goto beginning of file
+
+`$` - move to end fo line
+
+`0` - move to beginning of line
+
+`'.` - jump to the last-changed line
+
+*To cut-and-paste or copy-and-paste:*
+
+. Position the cursor at the beginning of the text you want to cut/copy.
+. Press `v` to begin character-based visual selection, or `V` to select whole lines. (you can use `j` or arrows to select next line)
+. Move the cursor to the end of the text to be cut/copied. While selecting text, you can perform searches and other advanced movement.
+. Press `d` (delete) to cut, or `y` (yank) to copy.
+. Move the cursor to the desired paste location.
+. Press `p` to paste after the cursor, or `P` to paste before.
+
+*Indentation*
+
+In normal mode, type `>>` to indent the current line, or `<<` to unindent.
+
+Each command can be used with a count. For example, typing `5>>.. `shifts five lines to the right, and then repeats the operation twice so that the five lines are shifted three times.
+
+In insert mode, `Ctrl-T` indents the current line, and `Ctrl-D` unindents.
+
+When indenting or unindenting, lines are shifted one 'shiftwidth' to the right or left.
+
+=== Tips
+
+Before each question in exam, set the namespace (if needed):
+
+`kubectl config set-context --current --namespace=thenewnamespace`
+
+Use imperative shortcuts with `--dry-run=client` to quickly create yaml file:
+
+.Examples
+----
+# pod
+kubectl run echoserver --image=k8s.gcr.io/echoserver:1.2 --restart=Never --dry-run=client -o yaml > frontend-pod.yml
+
+# deployment
+kubectl create deployment frontend --image=k8s.gcr.io/echoserver:1.2 --replicas=3 --port=8080 --dry-run=client -o yaml > frontend-deploy.yml
+
+# service (clusterip)
+kubectl create service clusterip frontend --tcp=5678:8080 --dry-run=client -o yaml
+
+# service (nodeport)
+kubectl create service nodeport frontend --tcp=5678:8080 --dry-run=client -o yaml
+
+----
