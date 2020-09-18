@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: hello-minikube-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 100m
+spec:
+  rules:
+    - host: hello-minikube.example.com
+      http:
+        paths:
+          - backend:
+              serviceName: hello-minikube-service
+              servicePort: 80
+
